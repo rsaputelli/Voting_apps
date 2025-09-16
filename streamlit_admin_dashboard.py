@@ -47,19 +47,52 @@ upload_tab, nonvoters_tab, tallies_tab = st.tabs(["Upload Registry", "Non‑vote
 # --- Upload Registry ---
 with upload_tab:
     st.subheader("Upload consolidated membership CSV → voter_registry")
-    st.caption("CSV must include columns: RegionCode (PAW/PAS/PAE), CustomerID, Email, MemberStatus.")
+    st.caption("File must include columns: RegionCode (PAW/PAS/PAE), CustomerID, Email, MemberStatus.")
 
-    file = st.file_uploader("Select CSV", type=["csv"])
+    file = st.file_uploader("Select CSV or Excel", type=["csv", "xlsx"])
+    strict = st.checkbox("Strict parsing (fail on malformed rows)", value=False)
     sync = st.checkbox("Sync mode: mark anyone NOT in the file as ineligible (per region present in upload)", value=False)
+
+    def read_table(uploaded_file) -> pd.DataFrame:
+        import io, csv
+        name = uploaded_file.name.lower()
+
+        # Read raw bytes once so we can retry parsers
+        raw = uploaded_file.read()
+        uploaded_file.seek(0)
+
+        # Excel path
+        if name.endswith(".xlsx"):
+            return pd.read_excel(io.BytesIO(raw), dtype=str)
+
+        # CSV path (try fast engine first)
+        try:
+            return pd.read_csv(io.BytesIO(raw), dtype=str)
+        except Exception as e1:
+            # Lenient fallback: python engine + explicit quoting + skip bad lines (if not strict)
+            try:
+                return pd.read_csv(
+                    io.BytesIO(raw),
+                    dtype=str,
+                    engine="python",
+                    sep=",",
+                    quotechar='"',
+                    escapechar="\\",
+                    skipinitialspace=True,
+                    on_bad_lines=("error" if strict else "skip"),
+                )
+            except Exception as e2:
+                raise RuntimeError(f"CSV parse failed.\nFast parser: {e1}\nLenient parser: {e2}")
 
     if file is not None:
         try:
-            df = pd.read_csv(file)
+            df = read_table(file)
         except Exception as e:
-            st.error(f"Could not read CSV: {e}")
+            st.error(f"Could not read file: {e}")
             st.stop()
 
-        st.write("Preview (first 50 rows):")
+        # Show shape + preview
+        st.write(f"Parsed rows: **{len(df):,}**, columns: **{len(df.columns)}**")
         st.dataframe(df.head(50), use_container_width=True)
 
         required = {"RegionCode", "CustomerID"}
@@ -72,7 +105,11 @@ with upload_tab:
                 if col not in df.columns:
                     df[col] = ""
 
-            rows = df[["RegionCode", "CustomerID", "Email", "MemberStatus"]].fillna("").to_dict(orient="records")
+            rows = (
+                df[["RegionCode", "CustomerID", "Email", "MemberStatus"]]
+                .fillna("")
+                .to_dict(orient="records")
+            )
 
             if st.button("Upsert now", type="primary"):
                 with st.spinner("Uploading to Supabase…"):
