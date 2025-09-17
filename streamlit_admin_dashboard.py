@@ -55,6 +55,21 @@ with st.sidebar:
 
 render_header("Council Voting")  
 
+# --- Sidebar: Admin Instructions ---
+with st.sidebar:
+    st.header("Admin Help")
+    st.markdown("""
+1.For Admins
+ Admin Dashboard
+- **Upload Registry**: upload a CSV with `RegionCode` (PAW/PAS/PAE), `CustomerID`, `Email`, `MemberStatus`.
+  - **Sync mode** (optional): marks anyone **not** in the uploaded file as **ineligible** for the regions present.
+- **Non-Voters**: list/download of eligible members who haven’t voted yet (per region).
+- **Live Tallies**: real-time vote totals per candidate (per region).
+
+2. Opening/Closing Voting
+- **Open**: upload final registry (optionally with **Sync**), verify counts, then announce the voting link.
+- **Close**: simply stop accepting submissions (optional window enforcement) and export tallies.
+
 regions = ["WEST", "SOUTHEAST", "EAST"]
 region = st.sidebar.selectbox("Region", regions, index=0)
 
