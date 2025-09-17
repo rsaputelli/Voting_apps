@@ -52,7 +52,7 @@ def fetch_candidates(region: str):
     return r.json()
 
 # ---- Resume block (auto-detect region) ----
-with st.expander("Returning to complete your vote? Enter your ACP Member ID and the resume code from your last session", expanded=False):
+with st.expander("Returning to complete your vote? Click here to enter your ACP Member ID and the resume code from your last session", expanded=False):
     col1, col2 = st.columns(2)
     with col1:
         acp_resume = st.text_input("ACP number", value="", type="default")
