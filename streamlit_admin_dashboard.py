@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 from io import StringIO
 
-st.set_page_config(page_title="PA-ACP Admin Dashboard", layout="wide")
+st.set_page_config(page_title="Voting App Admin Dashboard", layout="wide")
 
 # --- Secrets ---
 ADMIN_API_KEY = st.secrets.get("ADMIN_API_KEY", "")
