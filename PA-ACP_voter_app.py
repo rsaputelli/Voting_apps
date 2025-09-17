@@ -10,14 +10,17 @@ from typing import List, Dict, Any
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 
-col1, col2 = st.columns([1,3])
-with col1:
-    st.image("assets/ACP_PA_Chapter_Logo.png", width=400)
-with col2:
-    st.title("Voting App Admin Panel")
-if not EDGE_BASE_URL:
-    st.error("Missing EDGE_BASE_URL in Streamlit secrets.")
-    st.stop()
+def render_header(title: str):
+    # consistent, compact header across apps
+    col1, col2 = st.columns([1, 5], vertical_alignment="center")
+    with col1:
+        st.image("assets/ACP_PA_Chapter_Logo.png", width=180)
+    with col2:
+        st.markdown(
+            f"<div style='padding-top:6px'><h1 style='margin:0'>{title}</h1></div>",
+            unsafe_allow_html=True,
+        )
+render_header("Council Voting")
 
 # --- Region banner (auto-detected) ---
 if st.session_state.get("region"):
