@@ -13,18 +13,19 @@ st.set_page_config(page_title="PA-ACP Admin Dashboard", layout="wide")
 
 ADMIN_API_KEY = st.secrets.get("ADMIN_API_KEY", "")
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
-DEFAULT_REGION = st.secrets.get("DEFAULT_REGION", "WEST")
+
 # --- Simple admin login gate (UI) ---
 LOGIN_KEY = "admin_authed"
 PORTAL_PASS = st.secrets.get("ADMIN_PORTAL_PASS", "")
 
 if not st.session_state.get(LOGIN_KEY, False):
     st.header("Administrator Login")
-    pw = st.text_input("Enter admin passphrase", type="password")
+    pw = st.text_input("Enter admin passphrase", type="password", key="admin_pw")
     if st.button("Unlock"):
         if PORTAL_PASS and pw == PORTAL_PASS:
             st.session_state[LOGIN_KEY] = True
             st.success("Access granted.")
+            st.rerun()   # <-- force a fresh run so the dashboard renders
         else:
             st.error("Incorrect passphrase.")
     st.stop()
@@ -32,11 +33,17 @@ if not st.session_state.get(LOGIN_KEY, False):
 if not ADMIN_API_KEY or not EDGE_BASE_URL:
     st.error("Missing secrets. Please set ADMIN_API_KEY and EDGE_BASE_URL in Streamlit secrets.")
     st.stop()
-
+    
+# Only runs if user is authenticated
+with st.sidebar:
+    if st.button("Lock admin"):
+        st.session_state.pop(LOGIN_KEY, None)
+        st.rerun()
+        
 st.title("PA-ACP Admin Dashboard")
 
 regions = ["WEST", "SOUTHEAST", "EAST"]
-region = st.sidebar.selectbox("Region", regions, index=max(regions.index(DEFAULT_REGION) if DEFAULT_REGION in regions else 0, 0))
+region = st.sidebar.selectbox("Region", regions, index=0)
 
 # Small helper to call admin endpoints with Authorization header
 def admin_get(path: str, params: dict | None = None):
