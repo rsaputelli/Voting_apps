@@ -42,34 +42,7 @@ if not ADMIN_API_KEY or not EDGE_BASE_URL:
     st.error("Missing secrets. Please set ADMIN_API_KEY and EDGE_BASE_URL in Streamlit secrets.")
     st.stop()
 
-# --- Header remains above here ---
-
-# Keep region in session for consistency across tabs/actions
-st.session_state.setdefault("admin_region", "WEST")
-
-# Main controls row (in body, not sidebar)
-controls = st.container()
-with controls:
-    c1, c2 = st.columns([2, 1])
-    with c1:
-        st.subheader("Region")
-        st.session_state.admin_region = st.selectbox(
-            "Select region",
-            ["WEST", "SOUTHEAST", "EAST"],
-            index=["WEST", "SOUTHEAST", "EAST"].index(st.session_state.admin_region),
-            key="region_main_select",
-        )
-    with c2:
-        st.write("")  # spacer
-        if st.button("Refresh", use_container_width=True):
-            st.experimental_rerun()
-
-# Use this everywhere below
-region = st.session_state.admin_region
-
-# --- Sidebar ---
-regions = ["WEST", "SOUTHEAST", "EAST"]
-
+# --- Sidebar (lock + help) ---
 with st.sidebar:
     if st.button("Lock admin"):
         st.session_state.pop(LOGIN_KEY, None)
@@ -89,7 +62,8 @@ with st.sidebar:
 - **Close**: stop accepting submissions and export tallies.
         """
     )
-# Small helper to call admin endpoints with Authorization header
+
+# --- Helpers to call admin endpoints ---
 def admin_get(path: str, params: dict | None = None):
     url = f"{EDGE_BASE_URL}/{path}"
     resp = requests.get(url, headers={"Authorization": f"Bearer {ADMIN_API_KEY}"}, params=params, timeout=60)
@@ -97,41 +71,73 @@ def admin_get(path: str, params: dict | None = None):
 
 def admin_post(path: str, json_body: dict):
     url = f"{EDGE_BASE_URL}/{path}"
-    resp = requests.post(url, headers={
-        "Authorization": f"Bearer {ADMIN_API_KEY}",
-        "Content-Type": "application/json",
-    }, json=json_body, timeout=120)
+    resp = requests.post(
+        url,
+        headers={"Authorization": f"Bearer {ADMIN_API_KEY}", "Content-Type": "application/json"},
+        json=json_body,
+        timeout=120,
+    )
     return resp
 
-# Tabs for core admin actions
-upload_tab, nonvoters_tab, tallies_tab = st.tabs(["Upload Registry", "Non‑voters", "Live tallies"]) 
+# --- Region state (shared across tabs) ---
+REGIONS = ["WEST", "SOUTHEAST", "EAST"]
+st.session_state.setdefault("admin_region", "WEST")
 
-# --- Upload Registry ---
+def region_selector(tab_key: str, label: str = "Select region"):
+    """
+    Render a region selectbox for a given tab, mirroring st.session_state.admin_region.
+    Each tab uses a distinct widget key, but both read/write the same session value.
+    """
+    widget_key = f"admin_region_{tab_key}"
+    # Initialize the tab-specific widget value from the shared state
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = st.session_state.admin_region
+
+    # Render the selectbox
+    choice = st.selectbox(
+        label,
+        REGIONS,
+        index=REGIONS.index(st.session_state[widget_key]),
+        key=widget_key,
+    )
+    # If the tab's widget changed, push to the shared state and mirror to the other (if present)
+    if choice != st.session_state.admin_region:
+        st.session_state.admin_region = choice
+        # Mirror the other tab widget (if it exists) so they stay in sync
+        for other in ("nonvoters", "tallies"):
+            other_key = f"admin_region_{other}"
+            if other_key in st.session_state:
+                st.session_state[other_key] = choice
+
+# --- Tabs for core admin actions ---
+upload_tab, nonvoters_tab, tallies_tab = st.tabs(["Upload Registry", "Non-voters", "Live tallies"])
+
+# =========================
+# Upload Registry (NO region picker here)
+# =========================
 with upload_tab:
     st.subheader("Upload consolidated membership CSV → voter_registry")
     st.caption("File must include columns: RegionCode (PAW/PAS/PAE), CustomerID, Email, MemberStatus.")
 
     file = st.file_uploader("Select CSV or Excel", type=["csv", "xlsx"])
     strict = st.checkbox("Strict parsing (fail on malformed rows)", value=False)
-    sync = st.checkbox("Sync mode: mark anyone NOT in the file as ineligible (per region present in upload)", value=False)
+    sync = st.checkbox(
+        "Sync mode: mark anyone NOT in the file as ineligible (per region present in upload)",
+        value=False
+    )
 
     def read_table(uploaded_file) -> pd.DataFrame:
-        import io, csv
+        import io
         name = uploaded_file.name.lower()
-
-        # Read raw bytes once so we can retry parsers
         raw = uploaded_file.read()
         uploaded_file.seek(0)
 
-        # Excel path
         if name.endswith(".xlsx"):
             return pd.read_excel(io.BytesIO(raw), dtype=str)
 
-        # CSV path (try fast engine first)
         try:
             return pd.read_csv(io.BytesIO(raw), dtype=str)
         except Exception as e1:
-            # Lenient fallback: python engine + explicit quoting + skip bad lines (if not strict)
             try:
                 return pd.read_csv(
                     io.BytesIO(raw),
@@ -153,7 +159,6 @@ with upload_tab:
             st.error(f"Could not read file: {e}")
             st.stop()
 
-        # Show shape + preview
         st.write(f"Parsed rows: **{len(df):,}**, columns: **{len(df.columns)}**")
         st.dataframe(df.head(50), use_container_width=True)
 
@@ -162,11 +167,9 @@ with upload_tab:
         if missing:
             st.error(f"Missing required column(s): {missing}")
         else:
-            # Ensure optional columns exist
             for col in ["Email", "MemberStatus"]:
                 if col not in df.columns:
                     df[col] = ""
-
             rows = (
                 df[["RegionCode", "CustomerID", "Email", "MemberStatus"]]
                 .fillna("")
@@ -182,29 +185,44 @@ with upload_tab:
                 else:
                     st.error("Upload failed. See response above.")
 
-# --- Non‑voters ---
+# =========================
+# Non-voters (region picker visible)
+# =========================
 with nonvoters_tab:
-    st.subheader("Download non‑voters (eligible but has_voted = false)")
-    if st.button("Fetch non‑voters"):
+    st.subheader("Download non-voters (eligible but has_voted = false)")
+    region_selector("nonvoters", label="Region")
+    region = st.session_state.admin_region
+
+    if st.button("Fetch non-voters"):
         with st.spinner("Querying…"):
             r = admin_get("non_voters", params={"region": region})
         if r.ok:
             data = r.json().get("non_voters", [])
             if not data:
-                st.info("No non‑voters found for this region.")
+                st.info("No non-voters found for this region.")
             else:
                 df_nv = pd.DataFrame(data)
                 st.dataframe(df_nv, use_container_width=True)
                 csv = df_nv.to_csv(index=False).encode("utf-8")
-                st.download_button("Download CSV", csv, file_name=f"non_voters_{region}.csv", mime="text/csv")
+                st.download_button(
+                    "Download CSV",
+                    csv,
+                    file_name=f"non_voters_{region}.csv",
+                    mime="text/csv"
+                )
         else:
             st.error(f"Error: {r.status_code}")
             st.code(r.text, language="json")
 
-# --- Live tallies ---
+# =========================
+# Live tallies (region picker visible)
+# =========================
 with tallies_tab:
     st.subheader("Live tallies by candidate")
-    col1, col2 = st.columns([1,1])
+    region_selector("tallies", label="Region")
+    region = st.session_state.admin_region
+
+    col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("Refresh tallies"):
             with st.spinner("Querying…"):
