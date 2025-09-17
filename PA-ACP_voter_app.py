@@ -199,7 +199,7 @@ with col2:
 
 
 # ---- Step 2: Candidates ----
-st.subheader("2) Review candidates and choose up to 3")
+st.subheader("2) Review candidates and choose 3")
 if not ss.token or not ss.region:
     st.info("Validate first to begin voting.")
 else:
