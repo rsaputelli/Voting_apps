@@ -88,10 +88,6 @@ with st.sidebar:
 - **Open**: upload final registry (optionally with **Sync**), verify counts, then announce the voting link.
 - **Close**: stop accepting submissions and export tallies.
         """
-    )
-
-    st.subheader("Region")
-    region = st.selectbox("Select region", regions, index=0)
 
 # Small helper to call admin endpoints with Authorization header
 def admin_get(path: str, params: dict | None = None):
