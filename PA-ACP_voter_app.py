@@ -8,14 +8,14 @@ from typing import List, Dict, Any
 # (no DEFAULT_REGION needed; region is auto-detected from ACP)
 
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
-
-# Display logo at the top
-st.image("assets/ACP_PA_Chapter_Logo.png", width=400)
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 
-st.set_page_config(page_title="PA‑ACP Voting", layout="centered")
 st.title("PA‑ACP Council Voting")
-
+col1, col2 = st.columns([1,3])
+with col1:
+    st.image("assets/ACP_PA_Chapter_Logo.png", width=400)
+with col2:
+    st.title("Council Voting")
 if not EDGE_BASE_URL:
     st.error("Missing EDGE_BASE_URL in Streamlit secrets.")
     st.stop()
