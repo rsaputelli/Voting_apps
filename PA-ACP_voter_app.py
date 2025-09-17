@@ -10,7 +10,6 @@ from typing import List, Dict, Any
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 
-st.title("PA‑ACP Council Voting")
 col1, col2 = st.columns([1,3])
 with col1:
     st.image("assets/ACP_PA_Chapter_Logo.png", width=400)
