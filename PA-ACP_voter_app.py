@@ -15,7 +15,7 @@ def render_header(title: str):
     # consistent, compact header across apps
     col1, col2 = st.columns([1, 5], vertical_alignment="center")
     with col1:
-        st.image("assets/ACP_PA_Chapter_Logo.png", width=180)
+        st.image("assets/ACP_PA_Chapter_Logo.png", width=300)
     with col2:
         st.markdown(
             f"<div style='padding-top:6px'><h1 style='margin:0'>{title}</h1></div>",
