@@ -4,6 +4,7 @@ import requests
 from io import StringIO
 
 st.set_page_config(page_title="PA-ACP Admin Dashboard", layout="wide")
+
 # --- Configuration ---
 # Required Streamlit secrets (set these in your Streamlit deployment):
 #   ADMIN_API_KEY: same value you set in Supabase Functions → Secrets
@@ -24,6 +25,7 @@ def render_header(title: str):
             f"<div style='padding-top:6px'><h1 style='margin:0'>{title}</h1></div>",
             unsafe_allow_html=True,
         )
+render_header("PA-ACP Admin Dashboard")
 
 # --- Simple admin login gate (UI) ---
 LOGIN_KEY = "admin_authed"
