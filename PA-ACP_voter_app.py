@@ -32,6 +32,55 @@ ss.setdefault("region", None)
 ss.setdefault("resume_code", "")
 ss.setdefault("draft_ids", [])
 
+# --- Sidebar: How to Vote / Help ---
+with st.sidebar:
+    st.header("How to Vote")
+    st.markdown("""
+1. **Enter your ACP number** and click **Validate**.
+2. We’ll detect your **region** automatically.
+3. Review candidates and **select exactly 3**.
+4. Click **Submit vote**.
+
+> **Resume later?**  
+> After validating you’ll see a **Resume Code**. If you save a draft and need to come back,
+> click **Resume**, then enter your **ACP + Resume Code**.  
+> Once your vote is **submitted**, it’s final and cannot be changed.
+    """)
+
+    st.subheader("Troubleshooting")
+    st.markdown("""
+- **“Not eligible”**: We couldn’t find an Active/Graced membership for your ACP.  
+  Please contact the chapter office.
+- **“Already voted”**: A completed ballot is on file; votes can’t be changed.
+- **No candidates shown**: Refresh the page. If it persists, contact the office.
+    """)
+
+    # optional: pull contact from secrets so you don’t hardcode it
+    CONTACT = st.secrets.get("CHAPTER_CONTACT", "chapter@yourdomain.org")
+    st.subheader("Contact")
+    st.markdown(f"Chapter office: **{CONTACT}**")
+
+    st.divider()
+    st.subheader("Privacy & Security")
+    st.markdown("""
+- Your ACP number is **hashed** at rest (plaintext ACP is **not** stored).
+- One ballot per ACP number.
+- Drafts can be resumed; **submitted ballots are final**.
+    """)
+    st.divider()
+    st.subheader("Administrator Access")
+    ADMIN_APP_URL = st.secrets.get("ADMIN_APP_URL", "")
+    ADMIN_PORTAL_PASS = st.secrets.get("ADMIN_PORTAL_PASS", "")
+    pw = st.text_input("Admin passphrase", type="password", key="admin_link_pw_sidebar")
+    if st.button("Unlock admin link", key="unlock_admin_sidebar"):
+        if pw and ADMIN_PORTAL_PASS and pw == ADMIN_PORTAL_PASS:
+            st.session_state["admin_link_ok"] = True
+            st.success("Unlocked.")
+        else:
+            st.error("Incorrect passphrase.")
+    if st.session_state.get("admin_link_ok") and ADMIN_APP_URL:
+        st.link_button("Open Admin Dashboard", ADMIN_APP_URL, type="secondary")
+
 # ---- small helpers ----
 
 def api_get(path: str, params: Dict[str, Any] | None = None):
@@ -175,22 +224,6 @@ else:
                     else:
                         st.error(data.get("reason") or data.get("error") or "Could not submit your vote.")
                         
-# --- Admin portal link (hidden behind a simple passphrase) ---
-ADMIN_APP_URL = st.secrets.get("ADMIN_APP_URL", "")
-ADMIN_PORTAL_PASS = st.secrets.get("ADMIN_PORTAL_PASS", "")
 
-with st.expander("Administrator?"):
-    pw = st.text_input("Enter admin passphrase", type="password", key="admin_link_pw")
-    if st.button("Unlock admin link"):
-        if pw and ADMIN_PORTAL_PASS and pw == ADMIN_PORTAL_PASS:
-            st.session_state["admin_link_ok"] = True
-            st.success("Unlocked.")
-        else:
-            st.error("Incorrect passphrase.")
-
-if st.session_state.get("admin_link_ok") and ADMIN_APP_URL:
-    st.link_button("Open Admin Dashboard", ADMIN_APP_URL, type="secondary")
-
-st.caption("If you close this page before submitting, use your resume code above to continue later.")
 
 
