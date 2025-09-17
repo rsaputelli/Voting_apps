@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 from io import StringIO
 
+st.set_page_config(page_title="PA-ACP Admin Dashboard", layout="wide")
 # --- Configuration ---
 # Required Streamlit secrets (set these in your Streamlit deployment):
 #   ADMIN_API_KEY: same value you set in Supabase Functions → Secrets
@@ -13,12 +14,25 @@ from io import StringIO
 ADMIN_API_KEY = st.secrets.get("ADMIN_API_KEY", "")
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 DEFAULT_REGION = st.secrets.get("DEFAULT_REGION", "WEST")
+# --- Simple admin login gate (UI) ---
+LOGIN_KEY = "admin_authed"
+PORTAL_PASS = st.secrets.get("ADMIN_PORTAL_PASS", "")
+
+if not st.session_state.get(LOGIN_KEY, False):
+    st.header("Administrator Login")
+    pw = st.text_input("Enter admin passphrase", type="password")
+    if st.button("Unlock"):
+        if PORTAL_PASS and pw == PORTAL_PASS:
+            st.session_state[LOGIN_KEY] = True
+            st.success("Access granted.")
+        else:
+            st.error("Incorrect passphrase.")
+    st.stop()
 
 if not ADMIN_API_KEY or not EDGE_BASE_URL:
     st.error("Missing secrets. Please set ADMIN_API_KEY and EDGE_BASE_URL in Streamlit secrets.")
     st.stop()
 
-st.set_page_config(page_title="PA-ACP Admin Dashboard", layout="wide")
 st.title("PA-ACP Admin Dashboard")
 
 regions = ["WEST", "SOUTHEAST", "EAST"]
