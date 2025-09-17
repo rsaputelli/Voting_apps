@@ -17,6 +17,12 @@ if not EDGE_BASE_URL:
     st.error("Missing EDGE_BASE_URL in Streamlit secrets.")
     st.stop()
 
+# --- Region banner (auto-detected) ---
+if st.session_state.get("region"):
+    REGION_NAMES = {"WEST": "West", "SOUTHEAST": "Southeast", "EAST": "East"}
+    pretty = REGION_NAMES.get(st.session_state["region"], st.session_state["region"])  # fallback to raw code
+    st.success(f"Recognized region: **{pretty}**", icon="🌎")
+
 # Session state
 ss = st.session_state
 ss.setdefault("token", None)
@@ -168,4 +174,5 @@ else:
                         st.error(data.get("reason") or data.get("error") or "Could not submit your vote.")
 
 st.caption("If you close this page before submitting, use your resume code above to continue later.")
+
 
