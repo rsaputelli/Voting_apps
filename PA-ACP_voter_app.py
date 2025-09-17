@@ -96,6 +96,43 @@ def api_post(path: str, payload: Dict[str, Any]):
     headers = {"Content-Type": "application/json"}
     return requests.post(url, json=payload, headers=headers, timeout=45)
 
+def validate_acp_any_region(acp: str, regions: list[str]) -> dict:
+    """
+    Try validate_acp across regions. Prefer 'already_voted' if seen.
+    Returns {'ok': True, 'data': <full JSON>, 'region': 'WEST' } on success,
+            {'ok': False, 'reason': 'already_voted'|'not_eligible'|<other>}
+    """
+    best_reason = None  # remember the most informative failure
+    for reg in regions:
+        r = api_post("validate_acp", {"acp": acp, "region": reg})
+        data = r.json() if r.text else {"ok": False}
+        if r.ok and data.get("ok"):
+            return {"ok": True, "data": data, "region": data.get("region", reg)}
+        reason = (data.get("reason") or data.get("error") or "").strip().lower()
+        # Prefer 'already_voted' over other reasons, but keep looking in case of success
+        if reason == "already_voted":
+            return {"ok": False, "reason": "already_voted"}
+        if not best_reason:
+            best_reason = reason or "validation_failed"
+    return {"ok": False, "reason": best_reason or "validation_failed"}
+
+def resume_any_region(acp: str, resume_code: str, regions: list[str]) -> dict:
+    """
+    Try resume_with_code across regions with similar preference rules.
+    """
+    best_reason = None
+    for reg in regions:
+        r = api_post("resume_with_code", {"acp": acp, "resume_code": resume_code, "region": reg})
+        data = r.json() if r.text else {"ok": False}
+        if r.ok and data.get("ok"):
+            return {"ok": True, "data": data, "region": data.get("region", reg)}
+        reason = (data.get("reason") or data.get("error") or "").strip().lower()
+        if reason == "already_voted":
+            return {"ok": False, "reason": "already_voted"}
+        if not best_reason:
+            best_reason = reason or "resume_failed"
+    return {"ok": False, "reason": best_reason or "resume_failed"}
+
 REGION_NAMES = {"WEST": "West", "SOUTHEAST": "Southeast", "EAST": "East"}
 ALL_REGIONS = ["WEST", "SOUTHEAST", "EAST"]
 
@@ -114,25 +151,22 @@ with st.expander("Returning to complete your vote? Click here to enter your ACP 
     with col2:
         resume_code = st.text_input("Resume code", value=ss.resume_code, max_chars=12)
     if st.button("Resume session"):
-        ok = False
-        last_reason = None
-        for reg in ALL_REGIONS:
-            payload = {"acp": acp_resume.strip(), "resume_code": resume_code.strip(), "region": reg}
-            r = api_post("resume_with_code", payload)
-            data = r.json() if r.text else {"ok": False}
-            if r.ok and data.get("ok"):
-                ss.token = data.get("token")
-                ss.draft_ids = data.get("draft", [])
-                ss.resume_code = resume_code.strip()
-                ss.region = data.get("region", reg)
-                ok = True
-                break
-            else:
-                last_reason = data.get("reason") or data.get("error")
-        if ok:
+        rr = resume_any_region(acp_resume.strip(), resume_code.strip(), ALL_REGIONS)
+        if rr["ok"]:
+            data, reg = rr["data"], rr["region"]
+            ss.token = data.get("token")
+            ss.draft_ids = data.get("draft", [])
+            ss.resume_code = resume_code.strip()
+            ss.region = reg
             st.success(f"Session resumed for region **{REGION_NAMES.get(ss.region, ss.region)}**.")
         else:
-            st.error(last_reason or "Could not resume. Check your code.")
+            if rr["reason"] == "already_voted":
+                st.error("Our records show you have already submitted a ballot.")
+            elif rr["reason"] == "not_eligible":
+                st.error("We could not find an eligible voter record for this ACP number.")
+            else:
+                st.error("Could not resume. Check your code and try again.")
+
 
 # ---- Step 1: Validate (auto-detect region from ACP) ----
 st.subheader("1) Validate yourself to vote")
@@ -145,31 +179,24 @@ with col2:
         if not acp.strip():
             st.warning("Please enter your ACP number.")
         else:
-            # Try all regions until one matches this ACP
-            success = False
-            last_reason = None
-            for reg in ALL_REGIONS:
-                r = api_post("validate_acp", {"acp": acp.strip(), "region": reg})
-                data = r.json() if r.text else {"ok": False}
-                if r.ok and data.get("ok"):
-                    ss.token = data.get("token")
-                    ss.draft_ids = data.get("draft", [])
-                    ss.resume_code = data.get("resume_code", "")
-                    ss.region = data.get("region", reg)
-                    st.success(f"Validated for region **{REGION_NAMES.get(ss.region, ss.region)}**. Your session is active.")
-                    if ss.resume_code:
-                        st.info(f"Your resume code: **{ss.resume_code}** (save this if you need to come back)")
-                    success = True
-                    break
-                else:
-                    last_reason = data.get("reason") or data.get("error")
-            if not success:
-                if last_reason == "already_voted":
+            vr = validate_acp_any_region(acp.strip(), ALL_REGIONS)
+            if vr["ok"]:
+                data, reg = vr["data"], vr["region"]
+                ss.token = data.get("token")
+                ss.draft_ids = data.get("draft", [])
+                ss.resume_code = data.get("resume_code", "")
+                ss.region = reg
+                st.success(f"Validated for region **{REGION_NAMES.get(ss.region, ss.region)}**. Your session is active.")
+                if ss.resume_code:
+                    st.info(f"Your resume code: **{ss.resume_code}** (save this if you need to come back)")
+            else:
+                if vr["reason"] == "already_voted":
                     st.error("Our records show you have already submitted a ballot.")
-                elif last_reason == "not_eligible":
+                elif vr["reason"] == "not_eligible":
                     st.error("We could not find an eligible voter record for this ACP number.")
                 else:
-                    st.error(last_reason or "Validation failed.")
+                    st.error("Validation failed. Please try again or contact the chapter office.")
+
 
 # ---- Step 2: Candidates ----
 st.subheader("2) Review candidates and choose up to 3")
