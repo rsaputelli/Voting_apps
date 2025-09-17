@@ -14,6 +14,17 @@ st.set_page_config(page_title="PA-ACP Admin Dashboard", layout="wide")
 ADMIN_API_KEY = st.secrets.get("ADMIN_API_KEY", "")
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 
+def render_header(title: str):
+    # consistent, compact header across apps
+    col1, col2 = st.columns([1, 5], vertical_alignment="center")
+    with col1:
+        st.image("assets/ACP_PA_Chapter_Logo.png", width=180)
+    with col2:
+        st.markdown(
+            f"<div style='padding-top:6px'><h1 style='margin:0'>{title}</h1></div>",
+            unsafe_allow_html=True,
+        )
+
 # --- Simple admin login gate (UI) ---
 LOGIN_KEY = "admin_authed"
 PORTAL_PASS = st.secrets.get("ADMIN_PORTAL_PASS", "")
@@ -40,11 +51,7 @@ with st.sidebar:
         st.session_state.pop(LOGIN_KEY, None)
         st.rerun()
 
-col1, col2 = st.columns([1,3])
-with col1:
-    st.image("assets/ACP_PA_Chapter_Logo.png", width=400)
-with col2:
-    st.title("PA-ACP Admin Dashboard")
+render_header("Council Voting")  
 
 regions = ["WEST", "SOUTHEAST", "EAST"]
 region = st.sidebar.selectbox("Region", regions, index=0)
