@@ -103,9 +103,6 @@ def admin_post(path: str, json_body: dict):
     }, json=json_body, timeout=120)
     return resp
 
-st.sidebar.markdown("**Edge Base URL:**")
-st.sidebar.code(EDGE_BASE_URL)
-
 # Tabs for core admin actions
 upload_tab, nonvoters_tab, tallies_tab = st.tabs(["Upload Registry", "Non‑voters", "Live tallies"]) 
 
