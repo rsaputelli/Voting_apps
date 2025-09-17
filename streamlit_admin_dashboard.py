@@ -88,7 +88,7 @@ with st.sidebar:
 - **Open**: upload final registry (optionally with **Sync**), verify counts, then announce the voting link.
 - **Close**: stop accepting submissions and export tallies.
         """
-
+    )
 # Small helper to call admin endpoints with Authorization header
 def admin_get(path: str, params: dict | None = None):
     url = f"{EDGE_BASE_URL}/{path}"
