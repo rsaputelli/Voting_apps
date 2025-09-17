@@ -34,5 +34,3 @@ This site lets eligible members vote for **exactly 3** candidates in their regio
 - **Open**: upload final registry (optionally with **Sync**), verify counts, then announce the voting link.
 - **Close**: simply stop accepting submissions (optional window enforcement) and export tallies.
 
-### Contacts
-- Chapter office: <insert email/phone>
