@@ -8,6 +8,9 @@ from typing import List, Dict, Any
 # (no DEFAULT_REGION needed; region is auto-detected from ACP)
 
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
+
+# Display logo at the top
+st.image("ACP Pennsylvania Chapter Logo rgb_noBkgrnd.png", use_column_width=True)
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 
 st.set_page_config(page_title="PA‑ACP Voting", layout="centered")
