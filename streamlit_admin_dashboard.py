@@ -20,7 +20,7 @@ def render_header(title: str):
             unsafe_allow_html=True,
         )
 
-render_header("PA-ACP Admin Dashboard")
+render_header("Voting App Admin Dashboard")
 
 # --- Admin login gate ---
 LOGIN_KEY = "admin_authed"
