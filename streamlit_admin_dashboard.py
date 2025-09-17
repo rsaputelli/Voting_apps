@@ -70,15 +70,6 @@ with st.sidebar:
     st.subheader("Region")
     region = st.selectbox("Select region", regions, index=0)
 
-    st.caption("Edge Base URL")
-    st.text_input("",
-                  value=EDGE_BASE_URL,
-                  disabled=True,
-                  label_visibility="collapsed")
-
-regions = ["WEST", "SOUTHEAST", "EAST"]
-region = st.sidebar.selectbox("Region", regions, index=0)
-
 # Small helper to call admin endpoints with Authorization header
 def admin_get(path: str, params: dict | None = None):
     url = f"{EDGE_BASE_URL}/{path}"
