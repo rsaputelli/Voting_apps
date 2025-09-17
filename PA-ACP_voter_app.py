@@ -12,7 +12,7 @@ EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 
 col1, col2 = st.columns([1,3])
 with col1:
-    st.image("assets/ACP_PA_Chapter_Logo.png", width=500)
+    st.image("assets/ACP_PA_Chapter_Logo.png", width=400)
 with col2:
     st.title("Council Voting")
 if not EDGE_BASE_URL:
