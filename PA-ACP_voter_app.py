@@ -10,7 +10,7 @@ from typing import List, Dict, Any
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
 
 # Display logo at the top
-st.image("ACP Pennsylvania Chapter Logo rgb_noBkgrnd.png", width=400)
+st.image("assets/ACP_PA_Chapter_Logo.png", width=400)
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 
 st.set_page_config(page_title="PA‑ACP Voting", layout="centered")
