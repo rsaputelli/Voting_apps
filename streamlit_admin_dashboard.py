@@ -83,31 +83,21 @@ def admin_post(path: str, json_body: dict):
 REGIONS = ["WEST", "SOUTHEAST", "EAST"]
 st.session_state.setdefault("admin_region", "WEST")
 
-def region_selector(tab_key: str, label: str = "Select region"):
+def region_selector(widget_key: str, label: str = "Select region"):
     """
-    Render a region selectbox for a given tab, mirroring st.session_state.admin_region.
-    Each tab uses a distinct widget key, but both read/write the same session value.
+    Render a selectbox bound to st.session_state.admin_region.
+    Each tab uses a unique widget_key, but both read/write the same shared state.
+    (No cross-setting of other widget keys; avoids StreamlitAPIException.)
     """
-    widget_key = f"admin_region_{tab_key}"
-    # Initialize the tab-specific widget value from the shared state
-    if widget_key not in st.session_state:
-        st.session_state[widget_key] = st.session_state.admin_region
-
-    # Render the selectbox
-    choice = st.selectbox(
+    current = st.session_state.admin_region
+    selected = st.selectbox(
         label,
         REGIONS,
-        index=REGIONS.index(st.session_state[widget_key]),
+        index=REGIONS.index(current),
         key=widget_key,
     )
-    # If the tab's widget changed, push to the shared state and mirror to the other (if present)
-    if choice != st.session_state.admin_region:
-        st.session_state.admin_region = choice
-        # Mirror the other tab widget (if it exists) so they stay in sync
-        for other in ("nonvoters", "tallies"):
-            other_key = f"admin_region_{other}"
-            if other_key in st.session_state:
-                st.session_state[other_key] = choice
+    if selected != current:
+        st.session_state.admin_region = selected
 
 # --- Tabs for core admin actions ---
 upload_tab, nonvoters_tab, tallies_tab = st.tabs(["Upload Registry", "Non-voters", "Live tallies"])
@@ -190,7 +180,7 @@ with upload_tab:
 # =========================
 with nonvoters_tab:
     st.subheader("Download non-voters (eligible but has_voted = false)")
-    region_selector("nonvoters", label="Region")
+    region_selector("admin_region_nonvoters", label="Region")
     region = st.session_state.admin_region
 
     if st.button("Fetch non-voters"):
@@ -219,7 +209,7 @@ with nonvoters_tab:
 # =========================
 with tallies_tab:
     st.subheader("Live tallies by candidate")
-    region_selector("tallies", label="Region")
+    region_selector("admin_region_tallies", label="Region")
     region = st.session_state.admin_region
 
     col1, col2 = st.columns([1, 1])
