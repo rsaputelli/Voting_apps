@@ -39,8 +39,12 @@ with st.sidebar:
     if st.button("Lock admin"):
         st.session_state.pop(LOGIN_KEY, None)
         st.rerun()
-        
-st.title("PA-ACP Admin Dashboard")
+
+col1, col2 = st.columns([1,3])
+with col1:
+    st.image("assets/ACP_PA_Chapter_Logo.png", width=120)
+with col2:
+    st.title("PA-ACP Admin Dashboard")
 
 regions = ["WEST", "SOUTHEAST", "EAST"]
 region = st.sidebar.selectbox("Region", regions, index=0)
