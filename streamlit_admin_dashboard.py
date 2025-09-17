@@ -42,6 +42,32 @@ if not ADMIN_API_KEY or not EDGE_BASE_URL:
     st.error("Missing secrets. Please set ADMIN_API_KEY and EDGE_BASE_URL in Streamlit secrets.")
     st.stop()
 
+# --- Header remains above here ---
+render_header("PA-ACP Admin Dashboard")
+
+# Keep region in session for consistency across tabs/actions
+st.session_state.setdefault("admin_region", "WEST")
+
+# Main controls row (in body, not sidebar)
+controls = st.container()
+with controls:
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        st.subheader("Region")
+        st.session_state.admin_region = st.selectbox(
+            "Select region",
+            ["WEST", "SOUTHEAST", "EAST"],
+            index=["WEST", "SOUTHEAST", "EAST"].index(st.session_state.admin_region),
+            key="region_main_select",
+        )
+    with c2:
+        st.write("")  # spacer
+        if st.button("Refresh", use_container_width=True):
+            st.experimental_rerun()
+
+# Use this everywhere below
+region = st.session_state.admin_region
+
 # --- Sidebar ---
 regions = ["WEST", "SOUTHEAST", "EAST"]
 
