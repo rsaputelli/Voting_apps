@@ -43,7 +43,6 @@ if not ADMIN_API_KEY or not EDGE_BASE_URL:
     st.stop()
 
 # --- Header remains above here ---
-render_header("PA-ACP Admin Dashboard")
 
 # Keep region in session for consistency across tabs/actions
 st.session_state.setdefault("admin_region", "WEST")
