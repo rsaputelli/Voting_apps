@@ -5,18 +5,12 @@ from io import StringIO
 
 st.set_page_config(page_title="PA-ACP Admin Dashboard", layout="wide")
 
-# --- Configuration ---
-# Required Streamlit secrets (set these in your Streamlit deployment):
-#   ADMIN_API_KEY: same value you set in Supabase Functions → Secrets
-#   EDGE_BASE_URL: e.g., https://<PROJECT-REF>.supabase.co/functions/v1
-# Optional:
-#   DEFAULT_REGION: one of WEST, SOUTHEAST, EAST (used as initial selection)
-
+# --- Secrets ---
 ADMIN_API_KEY = st.secrets.get("ADMIN_API_KEY", "")
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 
+# --- Consistent header ---
 def render_header(title: str):
-    # consistent, compact header across apps
     col1, col2 = st.columns([1, 5], vertical_alignment="center")
     with col1:
         st.image("assets/ACP_PA_Chapter_Logo.png", width=300)
@@ -25,9 +19,10 @@ def render_header(title: str):
             f"<div style='padding-top:6px'><h1 style='margin:0'>{title}</h1></div>",
             unsafe_allow_html=True,
         )
+
 render_header("PA-ACP Admin Dashboard")
 
-# --- Simple admin login gate (UI) ---
+# --- Admin login gate ---
 LOGIN_KEY = "admin_authed"
 PORTAL_PASS = st.secrets.get("ADMIN_PORTAL_PASS", "")
 
@@ -38,7 +33,7 @@ if not st.session_state.get(LOGIN_KEY, False):
         if PORTAL_PASS and pw == PORTAL_PASS:
             st.session_state[LOGIN_KEY] = True
             st.success("Access granted.")
-            st.rerun()   # <-- force a fresh run so the dashboard renders
+            st.rerun()   # ensure the dashboard renders
         else:
             st.error("Incorrect passphrase.")
     st.stop()
@@ -46,29 +41,40 @@ if not st.session_state.get(LOGIN_KEY, False):
 if not ADMIN_API_KEY or not EDGE_BASE_URL:
     st.error("Missing secrets. Please set ADMIN_API_KEY and EDGE_BASE_URL in Streamlit secrets.")
     st.stop()
-    
-# Only runs if user is authenticated
+
+# --- Sidebar ---
+regions = ["WEST", "SOUTHEAST", "EAST"]
+
 with st.sidebar:
     if st.button("Lock admin"):
         st.session_state.pop(LOGIN_KEY, None)
         st.rerun()
 
-render_header("Council Voting")  
-
-# --- Sidebar: Admin Instructions ---
-with st.sidebar:
     st.header("Admin Help")
-    st.markdown("""
-1.For Admins
- Admin Dashboard
-- **Upload Registry**: upload a CSV with `RegionCode` (PAW/PAS/PAE), `CustomerID`, `Email`, `MemberStatus`.
+    st.markdown(
+        """
+**For Admins**
+
+**Admin Dashboard**
+- **Upload Registry**: CSV with `RegionCode` (PAW/PAS/PAE), `CustomerID`, `Email`, `MemberStatus`.
   - **Sync mode** (optional): marks anyone **not** in the uploaded file as **ineligible** for the regions present.
 - **Non-Voters**: list/download of eligible members who haven’t voted yet (per region).
 - **Live Tallies**: real-time vote totals per candidate (per region).
 
-2. Opening/Closing Voting
+**Opening / Closing Voting**
 - **Open**: upload final registry (optionally with **Sync**), verify counts, then announce the voting link.
-- **Close**: simply stop accepting submissions (optional window enforcement) and export tallies.
+- **Close**: stop accepting submissions and export tallies.
+        """
+    )
+
+    st.subheader("Region")
+    region = st.selectbox("Select region", regions, index=0)
+
+    st.caption("Edge Base URL")
+    st.text_input("",
+                  value=EDGE_BASE_URL,
+                  disabled=True,
+                  label_visibility="collapsed")
 
 regions = ["WEST", "SOUTHEAST", "EAST"]
 region = st.sidebar.selectbox("Region", regions, index=0)
