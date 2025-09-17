@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 from typing import List, Dict, Any
-st.set_page_config(page_title="PA-ACP Voting", layout="wide") 
+st.set_page_config(page_title="PA-ACP Voting") 
 
 # ---- Required secrets ----
 # SUPABASE_URL       = "https://<PROJECT-REF>.supabase.co"
