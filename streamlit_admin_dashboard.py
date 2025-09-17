@@ -53,8 +53,6 @@ with st.sidebar:
     st.header("Admin Help")
     st.markdown(
         """
-**For Admins**
-
 **Admin Dashboard**
 - **Upload Registry**: CSV with `RegionCode` (PAW/PAS/PAE), `CustomerID`, `Email`, `MemberStatus`.
   - **Sync mode** (optional): marks anyone **not** in the uploaded file as **ineligible** for the regions present.
