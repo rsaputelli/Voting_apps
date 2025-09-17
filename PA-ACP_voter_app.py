@@ -174,6 +174,22 @@ else:
                         ss.region = None
                     else:
                         st.error(data.get("reason") or data.get("error") or "Could not submit your vote.")
+                        
+# --- Admin portal link (hidden behind a simple passphrase) ---
+ADMIN_APP_URL = st.secrets.get("ADMIN_APP_URL", "")
+ADMIN_PORTAL_PASS = st.secrets.get("ADMIN_PORTAL_PASS", "")
+
+with st.expander("Administrator?"):
+    pw = st.text_input("Enter admin passphrase", type="password", key="admin_link_pw")
+    if st.button("Unlock admin link"):
+        if pw and ADMIN_PORTAL_PASS and pw == ADMIN_PORTAL_PASS:
+            st.session_state["admin_link_ok"] = True
+            st.success("Unlocked.")
+        else:
+            st.error("Incorrect passphrase.")
+
+if st.session_state.get("admin_link_ok") and ADMIN_APP_URL:
+    st.link_button("Open Admin Dashboard", ADMIN_APP_URL, type="secondary")
 
 st.caption("If you close this page before submitting, use your resume code above to continue later.")
 
