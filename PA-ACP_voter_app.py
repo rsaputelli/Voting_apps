@@ -1,27 +1,70 @@
 import streamlit as st
 import requests
 from typing import List, Dict, Any
-st.set_page_config(page_title="PA-ACP Voting", layout="wide") 
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo  # stdlib in Py 3.9+
+
+st.set_page_config(page_title="PA-ACP Voting", layout="wide")
 
 # ---- Required secrets ----
-# SUPABASE_URL       = "https://<PROJECT-REF>.supabase.co"
-# EDGE_BASE_URL      = "https://<PROJECT-REF>.supabase.co/functions/v1"
-# (no DEFAULT_REGION needed; region is auto-detected from ACP)
-
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
 EDGE_BASE_URL = st.secrets.get("EDGE_BASE_URL", "")
 
+# --- Voting close controls ---
+def _as_bool(val, default=False) -> bool:
+    if isinstance(val, bool):
+        return val
+    if val is None:
+        return default
+    return str(val).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+VOTING_CLOSED = _as_bool(st.secrets.get("VOTING_CLOSED", True))     # on/off
+VOTING_CLOSE_AT = (st.secrets.get("VOTING_CLOSE_AT", "") or "").strip()  # ISO string
+
+def _now_default_tz():
+    # Fallback to Eastern if the close time has no tzinfo
+    try:
+        return datetime.now(ZoneInfo("America/New_York"))
+    except Exception:
+        return datetime.now(timezone.utc)
+
+def _is_closed_now() -> bool:
+    if VOTING_CLOSED:
+        return True
+    if not VOTING_CLOSE_AT:
+        return False
+    try:
+        # Accepts "2025-11-15T23:59:00-05:00" or "2025-11-15 23:59:00-05:00"
+        dt = datetime.fromisoformat(VOTING_CLOSE_AT.replace(" ", "T"))
+        now = datetime.now(dt.tzinfo) if dt.tzinfo else _now_default_tz()
+        return now >= dt
+    except Exception:
+        # If misconfigured, fail open rather than lock voters out
+        return False
+
 def render_header(title: str):
-    # consistent, compact header across apps
-    col1, col2 = st.columns([1, 5], vertical_alignment="center")
+    # compact header
+    try:
+        col1, col2 = st.columns([1, 5], vertical_alignment="center")
+    except TypeError:
+        # older Streamlit without vertical_alignment
+        col1, col2 = st.columns([1, 5])
     with col1:
-        st.image("assets/ACP_PA_Chapter_Logo.png", width=300)
+        try:
+            st.image("assets/ACP_PA_Chapter_Logo.png", width=300)
+        except Exception:
+            pass
     with col2:
         st.markdown(
             f"<div style='padding-top:6px'><h1 style='margin:0'>{title}</h1></div>",
             unsafe_allow_html=True,
         )
+
 render_header("Council Voting")
+
+if _is_closed_now():
+    st.info("🔒 **Voting is now closed.** Thank you for participating!")
+    st.stop()
 
 # --- Region banner (auto-detected) ---
 if st.session_state.get("region"):
